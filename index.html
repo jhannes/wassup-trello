@@ -37,15 +37,24 @@ var chart = c3.generate({
     }
 });
 
+function showBoard(board) {
+    chart.unload();        
+    trelloStats(board, function(data) {
+        chart.load({
+            columns: data
+        });            
+    });    
+}
+
 $(function() {
     $("#board").change(function() {
-        chart.unload();        
-        trelloStats($(this).val(), function(data) {
-            chart.load({
-                columns: data
-            });            
-        });        
+        window.location.hash = $(this).val();
+        showBoard($(this).val());
     });
+    
+    window.onhashchange = function(event) {
+        showBoard(window.location.hash);
+    }
 });
     
 var authenticationSuccess = function() { 
@@ -54,8 +63,12 @@ var authenticationSuccess = function() {
         boardSelect.append($("<option>&lt;select project></option>"));
         data.forEach(function(board) {
             boardSelect.append($("<option>").val(board.id).text(board.name));
-        });        
-    });    
+        });
+        if (window.location.hash) {
+            $("#board").val(window.location.hash.substr(1));
+            showBoard(window.location.hash.substr(1));
+        }
+    });
 };
 var authenticationFailure = function() { console.log("Failed authentication"); };
 

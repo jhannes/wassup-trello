@@ -21,7 +21,7 @@ function trelloStats(board, callback) {
                 deltas[date][action.data.list.name] = deltas[date][action.data.list.name] - 1 || -1;
             }
         });
-        console.log(deltas);
+
         stats["x"] = [];
         var currents = [];
         for (var list of lists) {
