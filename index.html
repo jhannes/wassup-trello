@@ -6,8 +6,10 @@
 
 </head>
 <body>
-    
-    <select id="board"></select>
+    <div>
+        <label for="board">Select Trello board</label>
+        <select id="board"></select>
+    </div>
 
 <div id="chart"></div>
     
@@ -15,6 +17,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/c3/0.4.10/c3.min.js"></script>
 <script src="https://api.trello.com/1/client.js?key=aa791afba48c840c4594258a0394dbf3"></script>
+<script src="wassup-trello.js"></script>
 <script>
 var chart = c3.generate({
     bindto: '#chart',
@@ -35,72 +38,20 @@ var chart = c3.generate({
 });
 
 $(function() {
-   $("#board").change(function() {
-       var board = $(this).val();
-    var stats = {};
-    var lists = new Set();
-    chart.unload();
-    
-    Trello.get('/boards/' + board + '/actions?filter=updateCard,createCard,deleteCard').then(function(data) {
-
-        var deltas = {};
-        data.forEach(function(action) {
-            var date = action.date.substr(0, 10);
-            deltas[date] = deltas[date]||{};
-            if (action.data.listAfter) {
-                lists.add(action.data.listAfter.name);
-                deltas[date][action.data.listBefore.name] = deltas[date][action.data.listBefore.name] -1 || -1;
-                deltas[date][action.data.listAfter.name] = deltas[date][action.data.listAfter.name] +1 || +1;
-            }
-            if (action.type==="createCard") {
-                lists.add(action.data.list.name);
-                deltas[date][action.data.list.name] = deltas[date][action.data.list.name] +1 || +1;
-            }
-            if (action.type==="deleteCard") {
-                deltas[date][action.data.list.name] = deltas[date][action.data.list.name] -1 || -1;
-            }
-        });
-        console.log(deltas);
-        stats["x"] = [];
-        var currents = [];
-        for (var list of lists) {
-            stats[list] = [];
-            currents[list] = 0;
-        }
-        var dates = [];
-        for (var date in deltas) {
-            dates.push(date);
-        }
-        dates.sort();
-        
-        for (var date of dates) {
-            stats["x"].push(date);
-            for (var list of lists) {
-                currents[list] += deltas[date][list] || 0;
-                stats[list].push(currents[list]);
-            }
-        }
-        
-        var data = [];
-        for (var axis in stats) {
-            var axisData = [axis];
-            for (var item of stats[axis]) {
-                axisData.push(item);
-            }
-            data.push(axisData);
-        }
-        
-        chart.load({
-            columns: data
-        });
-    });                    
-       
-   });
+    $("#board").change(function() {
+        chart.unload();        
+        trelloStats($(this).val(), function(data) {
+            chart.load({
+                columns: data
+            });            
+        });        
+    });
 });
-
+    
 var authenticationSuccess = function() { 
     Trello.get('members/me/boards').then(function(data) {
         var boardSelect = $("#board");
+        boardSelect.append($("<option>&lt;select project></option>"));
         data.forEach(function(board) {
             boardSelect.append($("<option>").val(board.id).text(board.name));
         });        
