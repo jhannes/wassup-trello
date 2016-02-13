@@ -1,55 +1,87 @@
 /* global Trello */
-function trelloStats(board, callback) {
-    var stats = {};
-    var lists = new Set();
-    Trello.get('/boards/' + board + '/actions?filter=updateCard,createCard,deleteCard').then(function (data) {
+"use strict";
 
-        var deltas = {};
+function TrelloListHistory() {
+    this.deltas = new Map();
+    this.lists = new Set();
+}
+
+TrelloListHistory.prototype.getDeltas = function(date) {
+    this.deltas[date] = this.deltas[date] || new Map();
+    return this.deltas[date];
+}
+
+TrelloListHistory.prototype.addToList = function(list, card, date) {
+    var delta = this.getDeltas(date);
+    this.lists.add(list);
+    delta[list] = delta[list] + 1 || +1;    
+}
+TrelloListHistory.prototype.removeFromList = function(list, card, date) {
+    var delta = this.getDeltas(date);
+    delta[list] = delta[list] - 1 || -1;    
+}
+
+TrelloListHistory.prototype.getDates = function() {
+    var dates = [];
+    for (var date in this.deltas) {
+        dates.push(date);
+    }
+    dates.sort();    
+    return dates;
+}
+TrelloListHistory.prototype.getCounts = function() {
+    var result = new Map();
+    var dates = this.getDates();
+    var currentValues = new Map();
+    for (var date of dates) {
+        result[date] = new Map();
+        for (var list of this.lists) {
+            currentValues[list] = (currentValues[list]||0) + (this.deltas[date][list] || 0);
+            result[date][list] = currentValues[list];
+        }
+    }
+    return result;
+}
+TrelloListHistory.prototype.toAxes = function() {
+    var counts = this.getCounts();
+    var stats = [];
+    
+    let x = ["x"];
+    for (let date in counts) {
+        x.push(date);      
+    }
+    stats.push(x);
+
+    for (let list of this.lists) {
+        let listStats = [list];
+        for (let date in counts) {
+            listStats.push(counts[date][list]);
+        }
+        stats.push(listStats);
+    }
+    return stats;
+}
+
+
+function trelloStats(board, callback) {
+    Trello.get('/boards/' + board + '/actions?filter=updateCard,createCard,deleteCard').then(function (data) {
+        //data.sort((a,b) => a.date.localeCompare(b.date));
+        
+        var history = new TrelloListHistory();
         data.forEach(function (action) {
             var date = action.date.substr(0, 10);
-            deltas[date] = deltas[date] || {};
             if (action.data.listAfter) {
-                lists.add(action.data.listAfter.name);
-                deltas[date][action.data.listBefore.name] = deltas[date][action.data.listBefore.name] - 1 || -1;
-                deltas[date][action.data.listAfter.name] = deltas[date][action.data.listAfter.name] + 1 || +1;
+                history.removeFromList(action.data.listBefore.name, action.data.card.id, date);
+                history.addToList(action.data.listAfter.name, action.data.card.id, date);
             }
             if (action.type === "createCard") {
-                lists.add(action.data.list.name);
-                deltas[date][action.data.list.name] = deltas[date][action.data.list.name] + 1 || +1;
+                history.addToList(action.data.list.name, action.data.card.id, date);
             }
             if (action.type === "deleteCard") {
-                deltas[date][action.data.list.name] = deltas[date][action.data.list.name] - 1 || -1;
+                history.removeFromList(action.data.list.name, action.data.card.id, date);
             }
         });
-
-        stats["x"] = [];
-        var currents = [];
-        for (var list of lists) {
-            stats[list] = [];
-            currents[list] = 0;
-        }
-        var dates = [];
-        for (var date in deltas) {
-            dates.push(date);
-        }
-        dates.sort();
-
-        for (var date of dates) {
-            stats["x"].push(date);
-            for (var list of lists) {
-                currents[list] += deltas[date][list] || 0;
-                stats[list].push(currents[list]);
-            }
-        }
-
-        var data = [];
-        for (var axis in stats) {
-            var axisData = [axis];
-            for (var item of stats[axis]) {
-                axisData.push(item);
-            }
-            data.push(axisData);
-        }
-        callback(data);
+        //console.log(history.getCounts());
+        callback(history.toAxes());
     });
 }
