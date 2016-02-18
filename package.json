@@ -1,0 +1,33 @@
+{
+  "name": "wassup-trello",
+  "version": "0.1.0",
+  "description": "Cummulative Flow Diagram for Trello",
+  "main": "wallaby.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "karma start --single-run"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jhannes/wassup-trello.git"
+  },
+  "keywords": [
+    "trello"
+  ],
+  "author": "Johannes Brodwall <johannes@brodwall.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/jhannes/wassup-trello/issues"
+  },
+  "homepage": "https://github.com/jhannes/wassup-trello#readme",
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "karma": "^0.13.21",
+    "karma-chai": "^0.1.0",
+    "karma-firefox-launcher": "^0.1.7",
+    "karma-mocha": "^0.2.2",
+    "mocha": "^2.4.5"
+  }
+}

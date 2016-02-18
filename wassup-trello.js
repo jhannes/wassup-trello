@@ -46,15 +46,15 @@ TrelloListHistory.prototype.toAxes = function() {
     var counts = this.getCounts();
     var stats = [];
     
-    let x = ["x"];
-    for (let date in counts) {
+    var x = ["x"];
+    for (var date in counts) {
         x.push(date);      
     }
     stats.push(x);
 
-    for (let list of this.lists) {
-        let listStats = [list];
-        for (let date in counts) {
+    for (var list of this.lists) {
+        var listStats = [list];
+        for (var date in counts) {
             listStats.push(counts[date][list]);
         }
         stats.push(listStats);
@@ -84,4 +84,10 @@ function trelloStats(board, callback) {
         //console.log(history.getCounts());
         callback(history.toAxes());
     });
+}
+
+if (typeof module !== 'undefined') {
+  module.exports = {
+    TrelloListHistory: TrelloListHistory
+  };
 }
