@@ -11,6 +11,17 @@ TrelloListHistory.prototype.getDeltas = function(date) {
     return this.deltas[date];
 }
 
+TrelloListHistory.prototype.moveCard = function(date, card, from, to) {
+    console.log(date, from, "->", to, card);
+    
+    if (from) {
+        this.removeFromList(from, card, date);        
+    }
+    if (to) {
+        this.addToList(to, card, date);                            
+    }
+}
+
 TrelloListHistory.prototype.addToList = function(list, card, date) {
     var delta = this.getDeltas(date);
     this.lists.add(list);
@@ -64,24 +75,26 @@ TrelloListHistory.prototype.toAxes = function() {
 
 
 function trelloStats(board, callback) {
-    Trello.get('/boards/' + board + '/actions?filter=updateCard,createCard,deleteCard').then(function (data) {
+    Trello.get('/boards/' + board + '/actions?limit=1000&filter=updateCard,createCard,deleteCard').then(function (data) {
         //data.sort((a,b) => a.date.localeCompare(b.date));
         
         var history = new TrelloListHistory();
         data.forEach(function (action) {
             var date = action.date.substr(0, 10);
-            if (action.data.listAfter) {
-                history.removeFromList(action.data.listBefore.name, action.data.card.id, date);
-                history.addToList(action.data.listAfter.name, action.data.card.id, date);
-            }
-            if (action.type === "createCard") {
-                history.addToList(action.data.list.name, action.data.card.id, date);
-            }
-            if (action.type === "deleteCard") {
-                history.removeFromList(action.data.list.name, action.data.card.id, date);
+            if (action.type === "updateCard") {
+                if (action.data.listAfter) {
+                    history.moveCard(date, action.data.card.id, action.data.listBefore.name, action.data.listAfter.name);
+                } else {
+                    //console.log(action);
+                }
+            } else if (action.type === "createCard") {
+                history.moveCard(date, action.data.card.id, null, action.data.list.name);
+            } else if (action.type === "deleteCard") {
+                history.moveCard(date, action.data.card.id, action.data.list.name, null);
+            } else {
+                console.log(action.type, action.data.card ? action.data.card.name : "");
             }
         });
-        //console.log(history.getCounts());
         callback(history.toAxes());
     });
 }
